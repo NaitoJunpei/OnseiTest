@@ -36,7 +36,9 @@ function onAudioProcess( e ){
   
   cnt ++;
   console.log( "[" + cnt + "] min = " + mn + ", max = " + mx );
+  document.getElementById("test").innerHTML = "[" + cnt + "] min = " + mn + ", max = " + mx;
 }
+
 
  
 //. 音声処理開始
