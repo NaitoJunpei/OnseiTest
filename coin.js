@@ -8,12 +8,13 @@ var bufferSize = 4096;
 var cnt = 0;
 var flag = 0;
 var myArrayBuffer;
+var recordedBuffer = [];
 
 //. 音声処理
 function onAudioProcess( e ){
   //. 取得した音声データ
   var input = e.inputBuffer.getChannelData(0);
-  console.log(e.inputBuffer);
+  //console.log(e.inputBuffer);
 
   //. ↑この input に音声データが入っているので、これをストリーミングなどで処理すればよい。
   //. 以下は実際にデータが入っていることを確認するためのサンプル処理
@@ -33,12 +34,14 @@ function onAudioProcess( e ){
       mn = input[i];
     }
   }
+
+  Array.prototype.push.apply(recordedBuffer, input);
  
   //. 一度に取得した音声データの最大・最小値を求める（特に意味は無いが、データが取得できている確認）
   
   cnt ++;
-  console.log( "[" + cnt + "] min = " + mn + ", max = " + mx );
-  document.getElementById("test").innerHTML = "[" + cnt + "] min = " + mn + ", max = " + mx;
+  //console.log( "[" + cnt + "] min = " + mn + ", max = " + mx );
+  //document.getElementById("test").innerHTML = "[" + cnt + "] min = " + mn + ", max = " + mx;
 }
 
 
@@ -52,8 +55,9 @@ function Record(){
 
       var options = {mimeType: 'video/webm;codecs=vp9'};
       var recordedChunks = [];
+      recordedBuffer = [];
       var mediaRecorder = new MediaRecorder(stream, options);
-      setTimeout(function(){stream.getAudioTracks()[0].stop(); mediaRecorder.stop();}, 2000);
+      setTimeout(function(){stream.getAudioTracks()[0].stop(); mediaRecorder.stop(); javascriptnode.disconnect();}, 4000);
       mediaRecorder.addEventListener('dataavailable', function(e) {
 	if (e.data.size > 0) {
 	  recordedChunks.push(e.data);
@@ -61,6 +65,7 @@ function Record(){
       });
 
       mediaRecorder.addEventListener('stop', function() {
+	var downloadLink = document.getElementById('download');
 	downloadLink.href = URL.createObjectURL(new Blob(recordedChunks));
 	downloadLink.download = 'acetest.wav';
       });
