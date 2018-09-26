@@ -113,6 +113,12 @@ function sum(arr) {
   });
 }
 
+function sqsum(arr) {
+  return arr.reduce(function(prev, current, i, arr) {
+    return prev + current * current;
+  });
+}
+
 function fromZero(n) {
   return Array.from({length: n}, (v, k) => k);
 }
@@ -170,7 +176,8 @@ function fft(x, fftSize) {
     re[i] = x[i];
   }
 
-  return org_fft(fftSize, re, im);
+  org_fft(fftSize, re, im);
+  return re
 }
 
 
@@ -182,12 +189,12 @@ function culSpectrum(wave, sampleRate) {
   var src = wave.map(w => w);
 
   // FFT変換
-  var spectrum = fft(src, fftSize);
+  var spectrum = fft(src, fftSize).map(x => Math.abs(x));
   spectrum.map(x => x / sum(spectrum));
 
   //対数振幅スペクトル導出
   var specLog;
-  specLog = spectrum.map(x => 20 * Math.log10(Math.abs(spectrum)));
+  specLog = spectrum.map(x => 20 * Math.log10(Math.abs(x)));
 
   // 周波数のビン
   var freqs = fromZero(fftSize).map(x => x * sampleRate / fftSize);
@@ -197,9 +204,7 @@ function culSpectrum(wave, sampleRate) {
 
 // 音量(dB)を求める
 function detectLoudness(waveform) {
-  var square_mean = Math.sqrt(sum(waveform) / waveform.length);
-  console.log("square_mean");
-  console.log(square_mean);
+  var square_mean = Math.sqrt(sqsum(waveform) / waveform.length);
   var loudness = Math.log10(square_mean) * 20;
 
   return loudness;
@@ -207,6 +212,7 @@ function detectLoudness(waveform) {
 
 var OnPeriods = 20;
 
+// 特徴ベクトルの作成
 function makeFeature(waveform, sampleRate) {
   var featureVector = [];
   
@@ -214,13 +220,18 @@ function makeFeature(waveform, sampleRate) {
   var length = Math.floor(waveform.length / BinSize)
 
   // 最初のOn periodを求める
+  // Javascript版　ここで音量調整のための補正を適当に入れています。
+  waveform = waveform.map(w => w * 10000);
 
   var flag = 0;
   var firstON;
   var loudness;
+  console.log(length);
   for (var step = 0; step < length; step++) {
-    console.log(waveform.slice(BinSize * step, BinSize * (step + 1)));
+    //console.log(waveform.slice(BinSize * step, BinSize * (step + 1)));
     loudness = detectLoudness(waveform.slice(BinSize * step ,BinSize * (step + 1)));
+    console.log("loudness");
+    console.log(loudness);
     if((loudness >= 50) & (flag == 1)) {
       firstON = step;
       break;
@@ -228,19 +239,20 @@ function makeFeature(waveform, sampleRate) {
     if (loudness <= 50) {
       flag = 1;
     }
-    console.log(loudness);
   }
 
   var specLog;
+  console.log("fistON");
   console.log(firstON);
   for (var step = firstON; step < Math.min(firstON + OnPeriods, length); step++) {
     var waveform_step = waveform.slice(BinSize * step, (BinSize * (step + 1)));
     [specLog, freqs] = culSpectrum(waveform_step, sampleRate);
-    specLog = specLog.slice(0, freqs.filter(function(freq) {return freq < 20000;}).length + 1);
+    specLog = specLog.slice(0, freqs.filter(function(freq) {return freq < 20000;}).length);
 
+    console.log("specLog");
     console.log(specLog);
 
-    Array.prototype.push.apply(featureVector, specLog.slice());
+    Array.prototype.push.apply(featureVector, [specLog.slice()]);
   }
 
   return featureVector;
