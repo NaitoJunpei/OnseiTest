@@ -10,6 +10,13 @@ var flag = 0;
 var myArrayBuffer;
 var recordedBuffer = [];
 
+// 学習済みのパラメータ情報
+var mu;
+var sigma;
+var detSigma;
+var invSigma;
+var freqs;
+
 //. 音声処理
 function onAudioProcess( e ){
   //. 取得した音声データ
@@ -258,6 +265,24 @@ function makeFeature(waveform, sampleRate) {
   return featureVector;
 }
 
+// 特徴ベクトルの、freqsで選択された成分の抽出
+function extractFeature(feature, freqs) {
+  var num_data = feature.length;
+  var num_freqs = freqs.length;
+  var new_feature = [];
+  var temp_vector = [];
+  for(var index_d = 0; index_d < num_data; index_d++) {
+    temp_vector = [];
+    for(var index_f = 0; index_f < num_freqs; index_f++) {
+      Array.prototype.push.apply(temp_vector, [feature[index_d][index_f]]);
+    }
+    Array.prototype.push.apply(new_feature, [temp_vector.slice()]);
+  }
+
+  return new_feature;
+}
+
+
 // 行列の積
 function prodMatrix(A, B) {
   var i = A.length;
@@ -274,7 +299,7 @@ function prodMatrix(A, B) {
     for(var index_j = 0; index_j < j; index_j++) {
       res[index_i].push(0);
       for(var index_k = 0; index_k < k; index_k++) {
-	res[index_i][index_j] += A[index_i][index_k] + B[index_k][index_j];
+	res[index_i][index_j] += A[index_i][index_k] * B[index_k][index_j];
       }
     }
   }
@@ -297,6 +322,7 @@ function transpose(A) {
   return res;
 }
 
+// 予測の実行
 function makePrediction(feature, sigma, mu, detSigma, invSigma) {
   var numClass = sigma.length;
   var d = sigma[0].length;
@@ -319,9 +345,11 @@ function makePrediction(feature, sigma, mu, detSigma, invSigma) {
       for(var index = 0; index < x.length; index++) {
 	x_muC.push([x[index] - muC[index]]);
       }
+      console.log(x_muC);
 
       log_dist[c] += Math.log((2 * Math.PI) ** (-d / 2.0) * detSigmaC ** (-0.5)) - prodMatrix(prodMatrix(transpose(x_muC), invSigmaC), x_muC)[0][0] / 2;
     }
+    console.log(log_dist);
   }
 
   var pred_class = argMax(log_dist);
